@@ -27,9 +27,9 @@ RNG rng(getTickCount());
 class Particle
 {
 public:
-    Point pos;
-    Point vel;
-    Point p_best_pos;
+    Point2d pos;
+    Point2d vel;
+    Point2d p_best_pos;
 
     double W;
     double C1;
@@ -42,7 +42,7 @@ public:
 
 
 public:
-    Particle(Point pos = { 5,5 }, Point vel = { 0,0 }, Point p_best_pos = { 0,0 },
+    Particle(Point2d pos = { 5,5 }, Point2d vel = { 0,0 }, Point2d p_best_pos = { 0,0 },
         double w = 1.0, double c1 = 1.4, double c2 = 2.0,
         double fitness = 0, double p_best_fitness = 0, int NOD = 2,
         Scalar color = (0,0,255))
@@ -58,11 +58,11 @@ public:
         numberOfDimension(NOD),
         color(color)
     {}
-    auto set_pos(Point pos) { this->pos = pos; };
+    auto set_pos(Point2d pos) { this->pos = pos; };
 
-    auto set_vel(Point vel) { this->vel = vel; };
+    auto set_vel(Point2d vel) { this->vel = vel; };
 
-    auto set_p_best_pos(Point p_best_pos) { this->p_best_pos = p_best_pos; };
+    auto set_p_best_pos(Point2d p_best_pos) { this->p_best_pos = p_best_pos; };
 
     auto set_W(double w) { this->W = w; };
 
@@ -76,19 +76,19 @@ public:
 
     auto set_numberOfDimension(int NOD) { this->numberOfDimension = NOD; };
 
-    void update_velocity(Point g_best_pos);
+    void update_velocity(Point2d g_best_pos);
     void update_position();
     void evaluate_fitness();
 
 };
 
-void Particle::update_velocity(Point g_best_pos)
+void Particle::update_velocity(Point2d g_best_pos)
 {
     double distance = 10.0;
     Point2d d_personal_vel = { 0,0 };
     Point2d d_social_vel = { 0,0 };
 
-    Point personal_vel = (this->p_best_pos - this->pos);
+    Point2d personal_vel = (this->p_best_pos - this->pos);
     d_personal_vel = Point2d(personal_vel);
 
         
@@ -108,7 +108,7 @@ void Particle::update_velocity(Point g_best_pos)
         personal_vel.y = C1 * rng.uniform(0.0f, 1.0f) *double(personal_vel.y) / (sqrt(pow(personal_vel.x, 2) + pow(personal_vel.y, 2)));
     }*/
 
-    Point social_vel = (g_best_pos - this->pos);
+    Point2d social_vel = (g_best_pos - this->pos);
     d_social_vel = Point2d(social_vel);
 
     // 이동벡터량이 10보다 클 경우 이동벡터량을 10으로 고정 
@@ -128,7 +128,7 @@ void Particle::update_velocity(Point g_best_pos)
     //}
 
     Point2d d_interia = { 0,0 };
-    Point interia = vel; 
+    Point2d interia = vel;
     d_interia = Point2d(vel);
 
     if (distance < sqrt(pow(interia.x, 2) + pow(interia.y, 2)))
@@ -147,7 +147,7 @@ void Particle::update_velocity(Point g_best_pos)
 
 void Particle::update_position()
 {
-    printf("X : %d Y : %d  + X : %d Y : %d\n", pos.x,pos.y, vel.x,vel.y);
+    printf("X : %.1f Y : %.1f  + X : %.1f Y : %.1f\n", pos.x,pos.y, vel.x,vel.y);
 
     pos = pos + vel;
 
@@ -188,11 +188,101 @@ void Particle::evaluate_fitness()
 
 }
 
+int lower_hue = 40, upper_hue = 80;
+Mat src_hsv, mask;
+
+void on_hue_changed(int, void*);
+
+
+void on_hue_changed(int, void*)
+{
+    Scalar lowerb(lower_hue, 100, 0);
+    Scalar upperb(upper_hue, 255, 255);
+    inRange(src_hsv, lowerb, upperb, mask);
+
+    imshow("mask", mask);
+}
+
+//int main()
+//{
+//    VideoCapture cap(0);
+//
+//    if (!cap.isOpened())
+//    {
+//        cout << "Can't open the camera" << endl;
+//        return -1;
+//    }
+//
+//    Mat image;
+//
+//    while (true)
+//    {
+//        cap >> image;
+//
+//        Mat frame;
+//        bool bSuccess = cap.read(frame);
+//
+//        if (!bSuccess) {
+//            cout << "Cannot read a frame from video stream" << endl;
+//            break;
+//        }
+//
+//
+//        Mat grayscale;
+//        cvtColor(frame, grayscale, CV_RGB2GRAY);
+//
+//        cvtColor(frame, src_hsv, CV_BGR2HSV);
+//
+//
+//
+//        namedWindow("mask");
+//        createTrackbar("Lower Hue", "mask", &lower_hue, 179, on_hue_changed);
+//        createTrackbar("Upper Hue", "mask", &upper_hue, 179, on_hue_changed);
+//        on_hue_changed(0, 0);
+//
+//        Mat blurred;
+//        GaussianBlur(mask, blurred, Size(3, 3),2,2);
+//
+//        Mat canny;
+//        Canny(grayscale, canny, 50, 200);
+//    
+//
+//        vector<Vec3f> circles;
+//        HoughCircles(blurred, circles, CV_HOUGH_GRADIENT, 1, 50, 150, 30);
+//
+//        for (Vec3f c : circles) {
+//            Point center(cvRound(c[0]), cvRound(c[1]));
+//            int radius = cvRound(c[2]);
+//            circle(frame, center, radius, Scalar(0, 0, 255), 2);
+//
+//            printf("X : %d , Y : %d , R : %d \n", cvRound(c[0]), cvRound(c[1]), cvRound(c[2]));
+//        }
+//
+//        namedWindow("frame");
+//        imshow("frame", frame);
+//
+//        namedWindow("gray image");
+//        imshow("gray image", grayscale);
+//
+//        namedWindow("blur image");
+//        imshow("blur image", blurred);
+//
+//        if (waitKey(1) == 27)
+//            break;
+//
+//        waitKey(1000);
+//
+//    }
+//
+//    return 0;
+//}
+
 int main(void)
 {
     Mat img;
+    Mat img2;
     img = imread("C:/opencv/images/coins.png", IMREAD_GRAYSCALE);
-    //img = imread("C:/opencv/images/circles.png", IMREAD_GRAYSCALE);
+    img2 = imread("C:/opencv/images/circles.png", IMREAD_GRAYSCALE);
 
 
     if (img.empty()) {
@@ -200,7 +290,9 @@ int main(void)
     }
 
     Mat blurred;
+    Mat blurred2;
     blur(img, blurred, Size(3, 3));
+    blur(img2, blurred2, Size(3, 3));
 
     vector<Vec3f> circles;
     HoughCircles(blurred, circles, CV_HOUGH_GRADIENT, 1, 50, 150, 30);
@@ -220,27 +312,35 @@ int main(void)
     }
 
     // Fitness 계산
-    double sigma = 10.0;
+    double sigma = 20.0; //분포
     double bone = (1 / (sqrt(2 * PI) * sigma));
 
     int numberofParticle = 100;
     Particle swarm[100];
 
-
-
-    for (int i = 0; i < 100; i++)
-    {
-        swarm[i].pos = { rng.uniform(0,300) , rng.uniform(0,300) };
-        swarm[i].p_best_pos = swarm[i].pos;
-        swarm[i].color = Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
-        printf("x: %d , y: %d\n", swarm[i].pos.x, swarm[i].pos.y);
-
-        circle(sim, swarm[i].pos, 2, Scalar(0, 0, 255), 2);
+    for (int j = 0; j < 10; j++) {
+        for (int k = 0; k < 10; k++) {
+            swarm[(j * 10) + k].pos = { double(j*30) , double(k*30) };
+            swarm[(j * 10) + k].p_best_pos = swarm[(j * 3) + k].pos;
+            swarm[(j * 10) + k].color = Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
+            circle(sim, swarm[(j * 10) + k].pos, 2, Scalar(0, 0, 255), 2);
+        }
     }
+
+    //for (int i = 0; i < 100; i++)
+    //{
+    //    swarm[i].pos = { double(rng.uniform(0,300)) , double(rng.uniform(0,300)) };
+    //    swarm[i].p_best_pos = swarm[i].pos;
+    //    swarm[i].color = Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
+    //    printf("x: %.1f , y: %.1f\n", swarm[i].pos.x, swarm[i].pos.y);
+
+    //    circle(sim, swarm[i].pos, 2, Scalar(0, 0, 255), 2);
+    //}
     //waitKey(0);
 
     for (int j = 0; j < 100; j++)
     {
+  
         //각 particle check
         for (int i = 0; i < 100; i++)
         {
@@ -249,10 +349,10 @@ int main(void)
             // 해공간 만들기 
             for (Vec3f c : circles) 
             {
-                Point center(cvRound(c[0]), cvRound(c[1]));
+                Point2d center(cvRound(c[0]), cvRound(c[1]));
                 int radius = cvRound(c[2]);
                 //해공간에서 fitness 측정  
-                hagong += (double)1000.0 * radius * exp( 
+                hagong += (double)10000000.0 * radius * exp( 
                     -(
                        ( pow(swarm[i].pos.x - center.x, 2) + pow(swarm[i].pos.y - center.y, 2) ) / (2 * pow(sigma,2))
                       ) 
@@ -276,7 +376,7 @@ int main(void)
         }
 
         printf("global best update %f \n", g_best_fitness);
-        printf("global pos = X:%d, Y:%d \n", g_best_pos.x,g_best_pos.y);
+        printf("global pos = X:%.1f, Y:%.1f \n", g_best_pos.x,g_best_pos.y);
 
         cvtColor(img, sim, COLOR_GRAY2BGR);
 
@@ -287,7 +387,7 @@ int main(void)
 
             circle(sim, swarm[i].pos, 2, swarm[i].color, 2);
 
-            printf("swarm[%d] 의 X : %d Y : %d \n", i, swarm[i].pos.x, swarm[i].pos.y);
+            printf("swarm[%d] 의 X : %.1f Y : %.1f \n", i, swarm[i].pos.x, swarm[i].pos.y);
 
             if (swarm[i].W > 0.4) {
                 swarm[i].W -= 0.01;
@@ -304,7 +404,7 @@ int main(void)
 
 
     printf("global best update %f \n", g_best_fitness);
-    printf("global pos = X:%d, Y:%d \n", g_best_pos.x, g_best_pos.y);
+    printf("global pos = X:%.1f, Y:%.1f \n", g_best_pos.x, g_best_pos.y);
 
     imshow("image", img);
     imshow("dst", dst);
