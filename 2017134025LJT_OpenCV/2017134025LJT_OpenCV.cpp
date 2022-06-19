@@ -17,7 +17,7 @@ using namespace cv;
 void hough_line();
 void affine_transform();
 Mat src;
-Point2d srcQuad[4], dstQuad[4];
+Point srcQuad[4], dstQuad[4];
 void hough_circles();
 
 Point g_best_pos = { 0,0 };
@@ -27,9 +27,9 @@ RNG rng(getTickCount());
 class Particle
 {
 public:
-    Point2d pos;
-    Point2d vel;
-    Point2d p_best_pos;
+    Point pos;
+    Point vel;
+    Point p_best_pos;
 
     double W;
     double C1;
@@ -42,8 +42,8 @@ public:
 
 
 public:
-    Particle(Point2d pos = { 5,5 }, Point2d vel = { 0,0 }, Point2d p_best_pos = { 0,0 },
-        double w = 1.0, double c1 = 1.4, double c2 = 2.0,
+    Particle(Point pos = { 5,5 }, Point vel = { 0,0 }, Point p_best_pos = { 0,0 },
+        double w = 1.0, double c1 = 1.5, double c2 = 2.0,
         double fitness = 0, double p_best_fitness = 0, int NOD = 2,
         Scalar color = (0,0,255))
         :
@@ -58,11 +58,11 @@ public:
         numberOfDimension(NOD),
         color(color)
     {}
-    auto set_pos(Point2d pos) { this->pos = pos; };
+    auto set_pos(Point pos) { this->pos = pos; };
 
-    auto set_vel(Point2d vel) { this->vel = vel; };
+    auto set_vel(Point vel) { this->vel = vel; };
 
-    auto set_p_best_pos(Point2d p_best_pos) { this->p_best_pos = p_best_pos; };
+    auto set_p_best_pos(Point p_best_pos) { this->p_best_pos = p_best_pos; };
 
     auto set_W(double w) { this->W = w; };
 
@@ -76,15 +76,15 @@ public:
 
     auto set_numberOfDimension(int NOD) { this->numberOfDimension = NOD; };
 
-    void update_velocity(Point2d g_best_pos);
-    void update_position();
+    void update_velocity(Point g_best_pos);
+    void update_position(Mat img, Mat templ);
     void evaluate_fitness();
 
 };
 
-void Particle::update_velocity(Point2d g_best_pos)
+void Particle::update_velocity(Point g_best_pos)
 {
-    double distance = 10.0;
+    double distance = 100.0;
     Point2d d_personal_vel = { 0,0 };
     Point2d d_social_vel = { 0,0 };
 
@@ -145,16 +145,16 @@ void Particle::update_velocity(Point2d g_best_pos)
 
 }
 
-void Particle::update_position()
+void Particle::update_position(Mat img, Mat templ)
 {
-    printf("X : %.1f Y : %.1f  + X : %.1f Y : %.1f\n", pos.x,pos.y, vel.x,vel.y);
+    printf("X : %d Y : %d  + X : %d Y : %d\n", pos.x,pos.y, vel.x,vel.y);
 
     pos = pos + vel;
 
-    if (pos.x > 360) { pos.x = 360; }
+    if (pos.x > img.cols - templ.cols + 1) { pos.x = img.cols - templ.cols + 1; }
     if (pos.x < 0) { pos.x = 0; }
-    if (pos.y > 300) { pos.y = 300; }
-    if (pos.x < 0) { pos.y = 0; }
+    if (pos.y > img.rows - templ.rows + 1) { pos.y = img.rows - templ.rows + 1; }
+    if (pos.y < 0) { pos.y = 0; }
 
 
     // 맵밖으로 나가는거 잡기
@@ -282,18 +282,17 @@ int main(void)
     Mat img;
     Mat templ;
     //Mat result;
-    //
     //img = imread("C:/opencv/images/coins.png", IMREAD_GRAYSCALE);
     //templ = imread("C:/opencv/images/tmp_coin.png", IMREAD_GRAYSCALE);
 
-    //img = imread("C:/opencv/images/Lena_gray.jpg", IMREAD_GRAYSCALE);
-    //templ = imread("C:/opencv/images/hat.png", IMREAD_GRAYSCALE);
+    //img = imread("C:/opencv/images/circuit.bmp", IMREAD_GRAYSCALE);
+    //templ = imread("C:/opencv/images/crystal.bmp", IMREAD_GRAYSCALE);
 
-    img = imread("C:/opencv/images/source1.png", IMREAD_GRAYSCALE);
-    templ = imread("C:/opencv/images/tmp3.png", IMREAD_GRAYSCALE);
+    img = imread("C:/opencv/images/pcb3.jpg", IMREAD_GRAYSCALE);
+    templ = imread("C:/opencv/images/pcb3_templ.jpg", IMREAD_GRAYSCALE);
 
-    double minVal, maxVal;
-    Point minLoc, maxLoc, matchLoc;
+    //img = imread("C:/opencv/images/source1.png", IMREAD_GRAYSCALE);
+    //templ = imread("C:/opencv/images/tmp3.png", IMREAD_GRAYSCALE);
 
     Mat img_display;
     img.copyTo(img_display);
@@ -302,7 +301,6 @@ int main(void)
     int result_cols = img.cols - templ.cols + 1;                // width 
 
     Mat result(Size(result_cols, result_rows), CV_8UC1);
-    //result.create(result_rows, result_cols, CV_32SC1);
     double result_val=0;
     Point loc = { 0,0 };
     
@@ -321,85 +319,7 @@ int main(void)
     Point best_point = { 0,0 };
     double jung = 0.0;
     double jung2 = 0.0;
-    for (int rows = 0; rows < img.rows - templ.rows + 1; rows+=1)
-    {
-        for (int cols = 0; cols < img.cols - templ.cols + 1; cols+=1)
-        {
-            result_val = 0; //result_Val 초기화
-            jung = 0;
-            jung2 = 0;
 
-            for (int i = 0; i < templ.rows; i++)
-            {
-                for (int j = 0; j < templ.cols; j++)
-                {
-                    result_val +=
-                        //pow(img_point[(rows+i) * img.cols + cols
-                        //        + j] - templ_point[i * templ.cols + j]
-                        //        , 2);
-
-                        double(img_point[((rows+i) * img.cols) + cols + j])
-                        *double(templ_point[i * templ.cols + j]);
-                    
-                     jung += double(sqrt(pow(img_point[(rows+i) * img.cols + cols + j], 2)));
-                     
-                     jung2 += double(sqrt(pow(templ_point[i * templ.cols + j], 2)));
-
-                }
-            }
-
-            result_val = result_val / (jung * jung2);
-
-            printf("x : %d , y : %d val : %f\n", cols, rows, result_val);
-
-            if (result_val > best_value)
-            {
-                best_value = result_val;
-                best_point = Point(cols, rows);
-                printf("best_value : %f", best_value);
-            }
-            //printf("result val = %.1f\n", result_val);
-            //result_point[rows * result.cols + cols] = int(result_val);
-            //printf("result_val = %d\n", result_point[rows * result.cols + cols]);
-        }
-    }
-
-    printf("best_value : %f\nbest point : %d %d", best_value, best_point.x, best_point.y);
-
-    rectangle(img_display, best_point, Point(best_point.x + templ.cols, best_point.y + templ.rows), Scalar(0, 0, 255), 2);
-    //rectangle(result, matchLoc, Point(matchLoc.x+1,matchLoc.y+1), Scalar(0,0,255), 5, 8, 0);
-    imshow("image_window", img_display);
-    //imshow("result_window", result);
-    imshow("templ window", templ);
-
-
-    //printf("result_val = %.1f", result_val);
-
-    img.at<uchar>(10, 10) - templ.at<uchar>(10,10);
-
-
-
-
-    //matchTemplate(img, templ, result, 3);
-    //normalize(result, result, 0, 1, NORM_MINMAX, -1, Mat());
-
-    //minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc, Mat());
-
-    //matchLoc = maxLoc;
-    //rectangle(img_display, matchLoc, Point(matchLoc.x + templ.cols, matchLoc.y + templ.rows), 0xff00ff, 2, 8, 0);
-
-    //imshow("source", img_display);
-    //imshow("match", templ);
-
-    waitKey(0);
-    //템플릿 매칭 비교는 W - w + 1 , H - h + 1 의 공간에서 진행한다.
-    // 만약 5x5 공간에서 3x3 템플릿을 매칭하려고하면
-    // (0,0)(1,0)(2,0)
-    // (0,1)(1,1)(2,1)
-    // (0,2)(1,2)(2,2)  9회 검사해야 한다. 
-
-    //source는 300 x 246
-    //template 는 72 x 72
  
     if (img.empty()) {
 
@@ -410,72 +330,63 @@ int main(void)
     blur(img, blurred, Size(3, 3));
     blur(templ, blurred2, Size(3, 3));
 
-    vector<Vec3f> circles;
-    HoughCircles(blurred, circles, CV_HOUGH_GRADIENT, 1, 50, 150, 30);
-
     Mat dst;
     Mat sim;
     cvtColor(img, dst, COLOR_GRAY2BGR);
     cvtColor(img, sim, COLOR_GRAY2BGR);
 
+    imshow("template", templ);
+    waitKey(10);
 
-    for (Vec3f c : circles) {
-        Point center(cvRound(c[0]), cvRound(c[1]));
-        int radius = cvRound(c[2]);
-        circle(dst, center, radius, Scalar(0, 0, 255), 2);
 
-        printf("X : %d , Y : %d , R : %d \n", cvRound(c[0]), cvRound(c[1]), cvRound(c[2]));
-    }
 
     // Fitness 계산
-    double sigma = 20.0; //분포
-    double bone = (1 / (sqrt(2 * PI) * sigma));
-
     int numberofParticle = 100;
     Particle swarm[100];
 
     for (int j = 0; j < 10; j++) {
         for (int k = 0; k < 10; k++) {
-            swarm[(j * 10) + k].pos = { float(j*30) , float(k*30) };
-            swarm[(j * 10) + k].p_best_pos = swarm[(j * 3) + k].pos;
+            swarm[(j * 10) + k].pos = { j* ((img.cols-templ.rows)/10) , k* ((img.rows-templ.rows)/10)  };
+            swarm[(j * 10) + k].p_best_pos = swarm[(j * 10) + k].pos;
             swarm[(j * 10) + k].color = Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
-            circle(sim, swarm[(j * 10) + k].pos, 2, Scalar(0, 0, 255), 2);
+            circle(sim, (swarm[(j * 10) + k].pos) + Point(templ.cols/2,templ.rows/2), 2, Scalar(0, 0, 255), 2);
         }
     }
 
-    //for (int i = 0; i < 100; i++)
-    //{
-    //    swarm[i].pos = { double(rng.uniform(0,300)) , double(rng.uniform(0,300)) };
-    //    swarm[i].p_best_pos = swarm[i].pos;
-    //    swarm[i].color = Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
-    //    printf("x: %.1f , y: %.1f\n", swarm[i].pos.x, swarm[i].pos.y);
-
-    //    circle(sim, swarm[i].pos, 2, Scalar(0, 0, 255), 2);
-    //}
-    //waitKey(0);
 
     for (int j = 0; j < 100; j++)
     {
-  
         //각 particle check
         for (int i = 0; i < 100; i++)
         {
-            double hagong = 0;
 
-            // 해공간 만들기 
-            for (Vec3f c : circles) 
+            //Fitness 측정
+            result_val = 0; //result_Val 초기화
+            jung = 0;
+            jung2 = 0;
+
+            for (int rows = 0; rows < templ.rows; rows++)
             {
-                Point2d center(cvRound(c[0]), cvRound(c[1]));
-                int radius = cvRound(c[2]);
-                //해공간에서 fitness 측정  
-                hagong += (double)10000000.0 * radius * exp( 
-                    -(
-                       ( pow(swarm[i].pos.x - center.x, 2) + pow(swarm[i].pos.y - center.y, 2) ) / (2 * pow(sigma,2))
-                      ) 
-                );
+                for (int cols = 0; cols < templ.cols; cols++)
+                {
+                    result_val +=
+                        //pow(img_point[(rows+i) * img.cols + cols
+                        //        + j] - templ_point[i * templ.cols + j]
+                        //        , 2);
+
+                        double(img_point[((swarm[i].pos.y + rows) * img.cols) + swarm[i].pos.x + cols])
+                        * double(templ_point[rows * templ.cols + cols]);
+
+                    jung += double(sqrt(pow(img_point[(swarm[i].pos.y + rows) * img.cols + swarm[i].pos.x + cols], 2)));
+
+                    jung2 += double(sqrt(pow(templ_point[rows * templ.cols + cols], 2)));
+
+                }
             }
-            
-            swarm[i].fitness = (double)( bone * hagong );
+
+            swarm[i].fitness = result_val / (jung * jung2);
+
+            printf("x : %d , y : %d val : %f\n", swarm[i].pos.x, swarm[i].pos.y, result_val);
             printf("swarm[%d] 의 fitness : %f\n", i, swarm[i].fitness);
 
             if (swarm[i].fitness > swarm[i].p_best_fitness)
@@ -492,18 +403,18 @@ int main(void)
         }
 
         printf("global best update %f \n", g_best_fitness);
-        printf("global pos = X:%.1f, Y:%.1f \n", g_best_pos.x,g_best_pos.y);
+        printf("global pos = X:%d, Y:%d \n", g_best_pos.x,g_best_pos.y);
 
         cvtColor(img, sim, COLOR_GRAY2BGR);
 
         for (int i = 0; i < 100; i++)
         {
             swarm[i].update_velocity(g_best_pos);
-            swarm[i].update_position();
+            swarm[i].update_position(img,templ);
 
-            circle(sim, swarm[i].pos, 2, swarm[i].color, 2);
+            circle(sim, swarm[i].pos + Point(templ.cols / 2, templ.rows / 2), 2, swarm[i].color, 2);
 
-            printf("swarm[%d] 의 X : %.1f Y : %.1f \n", i, swarm[i].pos.x, swarm[i].pos.y);
+            printf("swarm[%d] 의 X : %d Y : %d \n", i, swarm[i].pos.x, swarm[i].pos.y);
 
             if (swarm[i].W > 0.4) {
                 swarm[i].W -= 0.01;
@@ -516,14 +427,14 @@ int main(void)
         printf("%d\n", j);
     }
 
-    circle(dst, g_best_pos, 5, Scalar(0, 0, 255), 2);
-
+    rectangle(dst, g_best_pos, Point(g_best_pos.x + templ.cols, g_best_pos.y + templ.rows), Scalar(0, 0, 255), 2);
 
     printf("global best update %f \n", g_best_fitness);
-    printf("global pos = X:%.1f, Y:%.1f \n", g_best_pos.x, g_best_pos.y);
+    printf("global pos = X:%d, Y:%d \n", g_best_pos.x, g_best_pos.y);
 
-    imshow("image", img);
+    //imshow("image", img);
     imshow("dst", dst);
+    imshow("template", templ);
 
 
     waitKey(0);
