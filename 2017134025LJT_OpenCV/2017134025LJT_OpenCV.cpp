@@ -281,14 +281,17 @@ int main(void)
 {
     Mat img;
     Mat templ;
-    Mat result;
-    
+    //Mat result;
+    //
     //img = imread("C:/opencv/image/coins.png", IMREAD_GRAYSCALE);
-    //templ = imread("C:/opencv/image/coin_template.png", IMREAD_GRAYSCALE);
+    //templ = imread("C:/opencv/image/tmp1.png", IMREAD_GRAYSCALE);
+    //templ = imread("c:/opencv/image/tmp1.png", imread_grayscale);
 
-    img = imread("C:/opencv/image/test.png", IMREAD_GRAYSCALE);
-    templ = imread("C:/opencv/image/test.png", IMREAD_GRAYSCALE);
+    img = imread("C:/opencv/image/Lena_gray.jpg", IMREAD_GRAYSCALE);
+    templ = imread("C:/opencv/image/lena_eye.png", IMREAD_GRAYSCALE);
 
+    //img = imread("C:/opencv/image/source1.png", IMREAD_GRAYSCALE);
+    //templ = imread("C:/opencv/image/tmp2.png", IMREAD_GRAYSCALE);
 
     double minVal, maxVal;
     Point minLoc, maxLoc, matchLoc;
@@ -296,46 +299,103 @@ int main(void)
     Mat img_display;
     img.copyTo(img_display);
 
-    int result_cols = img.cols - templ.cols + 1;
-    int result_rows = img.rows - templ.rows + 1;
-    result.create(result_rows, result_cols, CV_32FC1);
-    
+    int result_cols = img.cols - templ.cols + 1;                // width 
+    int result_rows = img.rows - templ.rows + 1;                // height
+
+    Mat result(Size(result_cols, result_rows), CV_8UC1);
+    //result.create(result_rows, result_cols, CV_32SC1);
     double result_val=0;
     Point loc = { 0,0 };
     
-    printf("cols : %d rows : %d", img.cols, img.rows);
+    printf("너비 : %d 높이 : %d", img.cols, img.rows);
    
-    // 템플릿 영역 검사 
+    // 템플릿 영역 검사  
 
-    for (int i = 0; i < templ.cols ; i++)
+    uchar* img_point = img.data;
+    uchar* templ_point = templ.data;
+    uchar* result_point = result.data;
+
+    //img.at<uchar>(Point(cols, rows) + Point{ i, j }) - templ.at<uchar>(Point(i, j))
+    //    , 2);
+ 
+    double best_value = 0.0;
+    Point best_point = { 0,0 };
+    double jung = 0.0;
+    double jung2 = 0.0;
+    for (int rows = 0; rows < img.rows - templ.rows + 1; rows+=10)
     {
-        for (int j = 0; j < templ.rows; j++)
+        for (int cols = 0; cols < img.cols - templ.cols + 1; cols+=10)
         {
-            result_val +=
-                pow(
-                    img.at<uchar>(loc + Point{ i, j }) - templ.at<uchar>(Point(i, j))
-                    ,2);
+            result_val = 0; //result_Val 초기화
+            jung = 0;
+            jung2 = 0;
 
+            for (int i = 0; i < templ.rows; i++)
+            {
+                for (int j = 0; j < templ.cols; j++)
+                {
+                    result_val +=
+                        //pow(img_point[rows * img.cols + cols
+                        //    + i * templ.cols + j] - templ_point[i * templ.cols + j]
+                        //    , 2);
+                        double(img_point[((rows+i) * img.cols) + cols + j])
+                        *double(templ_point[i * templ.cols + j]);
+                    
+                     jung += double(sqrt(pow(img_point[(rows+i) * img.cols + cols + j], 2)));
+                     
+                     jung2 += double(sqrt(pow(templ_point[i * templ.cols + j], 2)));
+
+                }
+            }
+
+            result_val = result_val / (jung * jung2);
+
+            printf("x : %d , y : %d val : %f\n", cols, rows, result_val);
+
+            if (result_val > best_value)
+            {
+                best_value = result_val;
+                best_point = Point(rows, cols);
+                printf("best_value : %f", best_value);
+            }
+            //printf("result val = %.1f\n", result_val);
+            //result_point[rows * result.cols + cols] = int(result_val);
+            //printf("result_val = %d\n", result_point[rows * result.cols + cols]);
         }
     }
 
-    printf("result_val = %.1f", result_val);
+    printf("best_value : %f\nbest point : %d %d", best_value, best_point.x, best_point.y);
+
+    //normalize(result, result, 0, 1, NORM_MINMAX, CV_32FC1);
+
+    //minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc);
+
+    matchLoc = minLoc;
+
+    rectangle(img_display, best_point, Point(best_point.x + templ.cols, best_point.y + templ.rows), Scalar(0, 0, 255), 2);
+    rectangle(result, matchLoc, Point(matchLoc.x+1,matchLoc.y+1), Scalar(0,0,255), 5, 8, 0);
+    imshow("image_window", img_display);
+    imshow("result_window", result);
+    imshow("templ window", templ);
+
+
+    //printf("result_val = %.1f", result_val);
 
     img.at<uchar>(10, 10) - templ.at<uchar>(10,10);
 
 
 
 
-    matchTemplate(img, templ, result, 3);
-    normalize(result, result, 0, 1, NORM_MINMAX, -1, Mat());
+    //matchTemplate(img, templ, result, 3);
+    //normalize(result, result, 0, 1, NORM_MINMAX, -1, Mat());
 
-    minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc, Mat());
+    //minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc, Mat());
 
-    matchLoc = maxLoc;
-    rectangle(img_display, matchLoc, Point(matchLoc.x + templ.cols, matchLoc.y + templ.rows), 0xff00ff, 2, 8, 0);
+    //matchLoc = maxLoc;
+    //rectangle(img_display, matchLoc, Point(matchLoc.x + templ.cols, matchLoc.y + templ.rows), 0xff00ff, 2, 8, 0);
 
-    imshow("source", img_display);
-    imshow("match", templ);
+    //imshow("source", img_display);
+    //imshow("match", templ);
 
     waitKey(0);
     //템플릿 매칭 비교는 W - w + 1 , H - h + 1 의 공간에서 진행한다.
@@ -382,7 +442,7 @@ int main(void)
 
     for (int j = 0; j < 10; j++) {
         for (int k = 0; k < 10; k++) {
-            swarm[(j * 10) + k].pos = { double(j*30) , double(k*30) };
+            swarm[(j * 10) + k].pos = { float(j*30) , float(k*30) };
             swarm[(j * 10) + k].p_best_pos = swarm[(j * 3) + k].pos;
             swarm[(j * 10) + k].color = Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
             circle(sim, swarm[(j * 10) + k].pos, 2, Scalar(0, 0, 255), 2);
