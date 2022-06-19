@@ -280,11 +280,73 @@ void on_hue_changed(int, void*)
 int main(void)
 {
     Mat img;
-    Mat img2;
-    img = imread("C:/opencv/images/coins.png", IMREAD_GRAYSCALE);
-    img2 = imread("C:/opencv/images/circles.png", IMREAD_GRAYSCALE);
+    Mat templ;
+    Mat result;
+    
+    //img = imread("C:/opencv/image/coins.png", IMREAD_GRAYSCALE);
+    //templ = imread("C:/opencv/image/coin_template.png", IMREAD_GRAYSCALE);
+
+    img = imread("C:/opencv/image/test.png", IMREAD_GRAYSCALE);
+    templ = imread("C:/opencv/image/test.png", IMREAD_GRAYSCALE);
 
 
+    double minVal, maxVal;
+    Point minLoc, maxLoc, matchLoc;
+
+    Mat img_display;
+    img.copyTo(img_display);
+
+    int result_cols = img.cols - templ.cols + 1;
+    int result_rows = img.rows - templ.rows + 1;
+    result.create(result_rows, result_cols, CV_32FC1);
+    
+    double result_val=0;
+    Point loc = { 0,0 };
+    
+    printf("cols : %d rows : %d", img.cols, img.rows);
+   
+    // 템플릿 영역 검사 
+
+    for (int i = 0; i < templ.cols ; i++)
+    {
+        for (int j = 0; j < templ.rows; j++)
+        {
+            result_val +=
+                pow(
+                    img.at<uchar>(loc + Point{ i, j }) - templ.at<uchar>(Point(i, j))
+                    ,2);
+
+        }
+    }
+
+    printf("result_val = %.1f", result_val);
+
+    img.at<uchar>(10, 10) - templ.at<uchar>(10,10);
+
+
+
+
+    matchTemplate(img, templ, result, 3);
+    normalize(result, result, 0, 1, NORM_MINMAX, -1, Mat());
+
+    minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc, Mat());
+
+    matchLoc = maxLoc;
+    rectangle(img_display, matchLoc, Point(matchLoc.x + templ.cols, matchLoc.y + templ.rows), 0xff00ff, 2, 8, 0);
+
+    imshow("source", img_display);
+    imshow("match", templ);
+
+    waitKey(0);
+    //템플릿 매칭 비교는 W - w + 1 , H - h + 1 의 공간에서 진행한다.
+    // 만약 5x5 공간에서 3x3 템플릿을 매칭하려고하면
+    // (0,0)(1,0)(2,0)
+    // (0,1)(1,1)(2,1)
+    // (0,2)(1,2)(2,2)  9회 검사해야 한다. 
+
+    //source는 300 x 246
+    //template 는 72 x 72
+ 
     if (img.empty()) {
 
     }
@@ -292,7 +354,7 @@ int main(void)
     Mat blurred;
     Mat blurred2;
     blur(img, blurred, Size(3, 3));
-    blur(img2, blurred2, Size(3, 3));
+    blur(templ, blurred2, Size(3, 3));
 
     vector<Vec3f> circles;
     HoughCircles(blurred, circles, CV_HOUGH_GRADIENT, 1, 50, 150, 30);
