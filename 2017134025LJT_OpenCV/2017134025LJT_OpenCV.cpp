@@ -282,14 +282,14 @@ int main(void)
     Mat img;
     Mat templ;
     //Mat result;
-    //img = imread("C:/opencv/images/coins.png", IMREAD_GRAYSCALE);
-    //templ = imread("C:/opencv/images/tmp_coin.png", IMREAD_GRAYSCALE);
+    img = imread("C:/opencv/images/coins.png", IMREAD_GRAYSCALE);
+    templ = imread("C:/opencv/images/tmp_coin.png", IMREAD_GRAYSCALE);
 
     //img = imread("C:/opencv/images/circuit.bmp", IMREAD_GRAYSCALE);
     //templ = imread("C:/opencv/images/crystal.bmp", IMREAD_GRAYSCALE);
 
-    img = imread("C:/opencv/images/pcb3.jpg", IMREAD_GRAYSCALE);
-    templ = imread("C:/opencv/images/pcb3_templ.jpg", IMREAD_GRAYSCALE);
+    //img = imread("C:/opencv/images/pcb3.jpg", IMREAD_GRAYSCALE);
+    //templ = imread("C:/opencv/images/pcb3_templ.jpg", IMREAD_GRAYSCALE);
 
     //img = imread("C:/opencv/images/source1.png", IMREAD_GRAYSCALE);
     //templ = imread("C:/opencv/images/tmp3.png", IMREAD_GRAYSCALE);
